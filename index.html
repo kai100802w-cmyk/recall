@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Recall">
+<meta name="theme-color" content="#0f172a">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<title>Recall</title>
+<style>
+:root{
+  --paper:#f8fafc;--ink:#0f172a;--ink2:#334155;--mute:#64748b;--faint:#94a3b8;
+  --line:#e2e8f0;--card:#fff;
+  --indigo:#4f46e5;--indigo-soft:#eef2ff;--teal:#0d9488;--teal-soft:#f0fdfa;
+  --amber:#f59e0b;--amber-soft:#fffbeb;--rose:#e11d48;--rose-soft:#fff1f2;
+  --violet:#7c3aed;--violet-soft:#f5f3ff;
+  --dark:#0f172a;--dark2:#1e293b;--dark3:#334155;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{overscroll-behavior-y:none}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:16px;line-height:1.6}
+button,input,textarea,select{font:inherit;color:inherit;border:none;background:none;outline:none}
+button{cursor:pointer}
+.num{font-variant-numeric:tabular-nums}
+.nosel{-webkit-user-select:none;user-select:none}
+*:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:80px}
+.pad{padding:0 20px}
+.top{padding-top:calc(env(safe-area-inset-top) + 26px)}
+.ruled{background-color:var(--card);
+  background-image:repeating-linear-gradient(to bottom,transparent 0 27px,rgba(100,116,139,.12) 27px 28px)}
+
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+h2.title{font-size:24px;font-weight:600;letter-spacing:-.01em;margin-top:4px}
+h3{font-size:14px;font-weight:600}
+.sm{font-size:13px}.xs{font-size:12px}.mute{color:var(--mute)}.faint{color:var(--faint)}
+b{font-weight:600}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.btn{width:100%;border-radius:16px;padding:15px;font-size:16px;font-weight:600;background:var(--ink);color:#fff;transition:transform .1s}
+.btn:active{transform:scale(.96)}
+.btn:disabled{background:#cbd5e1}
+.btn.ghost{background:#f1f5f9;color:var(--ink2);font-weight:500}
+.btn.sm{padding:10px;font-size:13px;border-radius:12px}
+.field{width:100%;background:#f1f5f9;border-radius:12px;padding:11px 13px;font-size:15px}
+.input{width:100%;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;font-size:15px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;font-size:12px}
+.dot{width:6px;height:6px;border-radius:999px;display:inline-block;flex:none}
+.row{display:flex;align-items:center;gap:10px}
+.between{display:flex;align-items:center;justify-content:space-between}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mt4{margin-top:4px}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+.mt20{margin-top:20px}.mt24{margin-top:24px}.mt32{margin-top:32px}
+
+.t-indigo{color:var(--indigo)}.bg-indigo{background:var(--indigo)}.sf-indigo{background:var(--indigo-soft)}
+.t-teal{color:var(--teal)}.bg-teal{background:var(--teal)}.sf-teal{background:var(--teal-soft)}
+.t-amber{color:#b45309}.bg-amber{background:var(--amber)}.sf-amber{background:var(--amber-soft)}
+.t-rose{color:var(--rose)}.bg-rose{background:var(--rose)}.sf-rose{background:var(--rose-soft)}
+.t-violet{color:var(--violet)}.bg-violet{background:var(--violet)}.sf-violet{background:var(--violet-soft)}
+
+.tabbar{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;display:flex;
+  background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);z-index:40}
+.tab{flex:1;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--faint);position:relative}
+.tab.on{color:var(--ink);font-weight:600}
+.tab svg{width:21px;height:21px}
+.badge{position:absolute;top:2px;right:calc(50% - 23px);background:var(--rose);color:#fff;font-size:11px;font-weight:600;border-radius:999px;padding:0 5px;line-height:16px}
+
+.review{position:fixed;inset:0;background:var(--dark);color:#f1f5f9;display:flex;flex-direction:column;z-index:60}
+.review .body{flex:1;overflow-y:auto;padding:0 20px}
+.review .q{font-size:21px;line-height:1.7;margin-top:26px}
+.review .a{font-size:18px;line-height:1.7}
+.progress{height:2px;background:var(--dark3);border-radius:2px;margin-top:12px}
+.progress>div{height:2px;background:#f1f5f9;border-radius:2px;transition:width .3s}
+.rate{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.rate button{background:var(--dark2);border-radius:16px;padding:12px 6px;text-align:center;transition:transform .1s}
+.rate button:active{transform:scale(.95)}
+.rate .bar{height:3px;width:32px;border-radius:2px;margin:0 auto 8px;display:block}
+.rate .lb{font-size:13px;font-weight:600;color:#f1f5f9;display:block}
+.rate .sb{font-size:11px;color:#64748b;display:block;margin-top:1px}
+.rate .nx{font-size:11px;color:#94a3b8;display:block;margin-top:6px;font-weight:500}
+
+.ladder{display:flex;align-items:flex-end;justify-content:space-between}
+.ladder .step{flex:1;display:flex;flex-direction:column;align-items:center}
+.ladder .pip{width:6px;height:6px;border-radius:999px;background:var(--dark3);margin-bottom:6px;transition:all .5s cubic-bezier(.2,.8,.2,1)}
+.ladder .pip.on{background:#f1f5f9}
+.ladder .pip.cur,.ladder .pip.tgt{width:12px;height:12px}
+.ladder .pip.tgt{box-shadow:0 0 0 2px var(--amber)}
+.ladder .lb{font-size:11px;color:#475569}
+.ladder .lb.cur{color:#f1f5f9;font-weight:600}
+
+mark.unsure{background:#fecdd3;color:#9f1239;font-weight:600;border-radius:4px;padding:0 3px}
+mark.numeric{background:var(--amber-soft);border-bottom:2px solid var(--amber);color:var(--ink);font-weight:500}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 92px);
+  background:var(--ink);color:#fff;padding:9px 18px;border-radius:999px;font-size:14px;z-index:70}
+.bars{display:flex;align-items:flex-end;gap:6px;height:60px}
+.bars .b{background:#c7d2fe;border-radius:4px 4px 0 0;min-height:2px;width:100%}
+.meter{height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden}
+.meter>div{height:6px;border-radius:3px}
+.warn{background:#fef3c7;color:#92400e;padding:8px 16px;font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="module">
+import React from "https://esm.sh/react@18.3.1";
+import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
+import htm from "https://esm.sh/htm@3.1.1";
+
+const html = htm.bind(React.createElement);
+const { useState, useEffect, useMemo, useRef } = React;
+
+/* ══════════════════════════════════════════════════════════
+   スケジューラ — エビングハウス型 間隔ラダー
+   ══════════════════════════════════════════════════════════ */
+const LADDER=[0,1,3,7,14,30,60,120,240];
+const MAX_STAGE=LADDER.length-1, MASTER_STAGE=5, LEECH=8;
+const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+const todayStr=()=>new Date().toLocaleDateString("sv-SE");
+const addDays=(d,n)=>{const t=new Date(d+"T00:00:00");t.setDate(t.getDate()+n);return t.toLocaleDateString("sv-SE")};
+const daysBetween=(a,b)=>Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/864e5);
+
+function jitter(iv,id){
+  if(iv<4) return 0;
+  let h=2166136261;
+  for(let i=0;i<id.length;i++){h^=id.charCodeAt(i);h=Math.imul(h,16777619);}
+  return Math.round(iv*(((h>>>0)%1000)/1000*0.1-0.05));
+}
+function schedule(p,rating,id){
+  let {stage,ease,lapses}=p; const base={...p,tr:p.tr+1};
+  if(rating==="again"){
+    lapses+=1; ease=clamp(ease-0.2,1.3,2.8); stage=Math.max(0,stage-2);
+    return {...base,stage,ease,lapses,iv:1,due:addDays(todayStr(),1),mastered:false,leech:lapses>=LEECH};
+  }
+  if(rating==="hard") ease=clamp(ease-0.15,1.3,2.8);
+  if(rating==="good") stage=clamp(stage+1,0,MAX_STAGE);
+  const iv=Math.max(1,Math.round(LADDER[stage]*(ease/2.5)));
+  const mastered=stage>=MASTER_STAGE;
+  return {...base,stage,ease,iv,cc:p.cc+1,
+    due:addDays(todayStr(),Math.max(1,iv+jitter(iv,id))),
+    mastered,everM:p.everM||mastered,leech:lapses>=LEECH};
+}
+const previewStage=(p,r)=>r==="again"?Math.max(0,p.stage-2):r==="hard"?p.stage:clamp(p.stage+1,0,MAX_STAGE);
+function previewDays(p,r){
+  if(r==="again") return 1;
+  const ease=r==="hard"?clamp(p.ease-0.15,1.3,2.8):p.ease;
+  return Math.max(1,Math.round(LADDER[previewStage(p,r)]*(ease/2.5)));
+}
+const dayLabel=d=>d<=1?"明日":d<30?`${d}日後`:`約${Math.round(d/30)}ヶ月後`;
+const newProg=()=>({stage:0,ease:2.5,iv:0,due:todayStr(),tr:0,cc:0,lapses:0,mastered:false,everM:false,leech:false});
+
+/* ══════════════════════════════════════════════════════════
+   保存（この端末の中）
+   ══════════════════════════════════════════════════════════ */
+const KEY="recall:v1";
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const TONES=["indigo","teal","amber","rose","violet"];
+const tn=c=>TONES.includes(c)?c:"indigo";
+
+const blankState=()=>({v:1,
+  cats:[{id:"c1",name:"自己啓発",color:"indigo"},
+        {id:"c2",name:"仕事",color:"teal"},
+        {id:"c3",name:"語学",color:"amber"}],
+  cards:[],prog:{},logs:[],
+  profile:{limit:60,streak:0,longest:0,last:null}});
+
+function loadState(){
+  try{ const s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch{ return null; }
+}
+function saveState(st){
+  try{ localStorage.setItem(KEY,JSON.stringify({...st,logs:st.logs.slice(-3000)})); return true; }
+  catch{ return false; }
+}
+
+const SAMPLE=[
+  ["自己決定理論の核となる考え方は？","人は自分がやりたいと思って動く時、一番エネルギーが湧き、成長する","fact",0],
+  ["内発的動機づけの3つのポイントは？","① 自律性\n② 有能感\n③ 関係性","enum",3],
+  ["「楽しさはガソリン」の3要素は？","① 失敗は学び\n② 仕事はゲーム\n③ 仲間との共有","enum",3],
+  ["利他の精神の4つのポイントは？","① 自分の仕事が何に役立つか\n② 感謝\n③ 周囲の人をサポートする\n④ 結果よりプロセス","enum",4],
+  ["明るく振る舞うコツ5つは？","① 感情はジャッジするもの\n② 本音のニーズを探る\n③ 身体を動かしてエネルギーを分散\n④ 感謝する点を探す\n⑤ 役を演じる","enum",5],
+  ["1%の改善を1年続けるとどうなる？","1.01の365乗によって37.78倍良くなる","fact",0],
+  ["潜在能力のプラトーとは？","期待している進歩は直線的だが、リアルな進歩は序盤ほぼ横ばいで、後半に急上昇する","fact",0],
+];
+
+/* ══════════════════════════════════════════════════════════
+   Claude アプリで文字起こしするためのプロンプト
+   ══════════════════════════════════════════════════════════ */
+const OCR_PROMPT=`これは日本語の手書き学習ノートの写真です。分野は「ここに科目名」です。
+一問一答カードを作ってください。
+
+【文字起こしのルール】
+- 判読できない文字は絶対に推測せず [?] と書く
+- 手書きでは 1と7、0と6、倍と%、①と⑦ が特に判別困難です。
+  該当する箇所は最も可能性が高い候補を書いた上で直後に [?] を付ける
+  例: 37.78倍[?]
+
+【カード化しないもの】
+- 日付、その日のタスク・ToDo・業務予定、進捗メモ、感想
+
+【カードの粒度】
+- 列挙された項目は分割せず1枚にまとめる
+- 列挙カードの質問には必ず項目数を含める（例:「内発的動機づけの3つのポイントは？」）
+- 解答は改行区切りの番号付きリストにする
+- ノートに書かれていないことは絶対に補わない
+
+【出力形式】以下だけを出力。前置き・説明・コードブロックは不要。
+
+Q: 質問文
+A: 解答
+---
+Q: 質問文
+A: 解答`;
+
+function parseCards(text){
+  const out=[]; let cur=null, mode=null;
+  const flush=()=>{
+    if(!cur) return;
+    const q=cur.q.trim();
+    const lines=cur.a.map(s=>s.trim()).filter(Boolean);
+    if(q&&lines.length){
+      const isEnum=lines.length>1;
+      out.push({q,a:lines.join("\n"),type:isEnum?"enum":"fact",n:isEnum?lines.length:0});
+    }
+    cur=null; mode=null;
+  };
+  for(const line of text.split("\n")){
+    if(/^[ \t]*-{3,}[ \t]*$/.test(line)){ flush(); continue; }
+    const qm=line.match(/^[ \t]*Q[:：][ \t]*(.*)$/);
+    if(qm){ flush(); cur={q:qm[1],a:[]}; mode="q"; continue; }
+    const am=line.match(/^[ \t]*A[:：][ \t]*(.*)$/);
+    if(am&&cur){ cur.a.push(am[1]); mode="a"; continue; }
+    if(!cur) continue;
+    if(mode==="a") cur.a.push(line);
+    else if(line.trim()) cur.q+=line.trim();
+  }
+  flush();
+  return out;
+}
+
+const HL=/(\[\?\])|([0-9０-９]+(?:[.．][0-9０-９]+)?[%％倍円年月日個回乗番位]?|[①-⑳]|[PpＰｐ]\s?[0-9０-９]+)/g;
+function Highlighted({text}){
+  const parts=[];let last=0,m,k=0;HL.lastIndex=0;
+  while((m=HL.exec(text))!==null){
+    if(m.index>last) parts.push(html`<span key=${k++}>${text.slice(last,m.index)}</span>`);
+    parts.push(m[1]?html`<mark key=${k++} className="unsure">[?]</mark>`
+                   :html`<mark key=${k++} className="numeric">${m[2]}</mark>`);
+    last=m.index+m[0].length;
+  }
+  parts.push(html`<span key=${k++}>${text.slice(last)}</span>`);
+  return html`<${React.Fragment}>${parts}<//>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   アイコン
+   ══════════════════════════════════════════════════════════ */
+const Icon=({d})=>html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d=${d}/></svg>`;
+const I={
+  home:"M3 10.5 12 3l9 7.5V21H3z",
+  cards:"M4 6h16M4 12h16M4 18h10",
+  paste:"M9 4h6v3H9zM7 5H5v16h14V5h-2M9 12h6M9 16h4",
+  chart:"M4 20V10M10 20V4M16 20v-7M22 20H2",
+  gear:"M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4M19.9 15.2a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.92 2.92l-.06-.06a1.7 1.7 0 0 0-2.88 1.2v.18a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-3-1.29l-.06.06a2.06 2.06 0 1 1-2.92-2.92l.06-.06a1.7 1.7 0 0 0-1.2-2.88H3.1a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.29-3l-.06-.06a2.06 2.06 0 1 1 2.92-2.92l.06.06a1.7 1.7 0 0 0 1.87.34h.08A1.7 1.7 0 0 0 10.38 3.1V3a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 2.88 1.2l.06-.06a2.06 2.06 0 1 1 2.92 2.92l-.06.06a1.7 1.7 0 0 0 1.2 2.88H21.9a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.2 1.03z",
+  x:"M18 6 6 18M6 6l12 12",
+  pen:"M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
+  plus:"M12 5v14M5 12h14",
+  flame:"M12 22c4 0 7-2.7 7-6.5 0-4.5-4-6-4-9.5-2 1-3 2.5-3 4.5-1-.5-1.5-1.5-1.5-3C8 9 5 11 5 15.5 5 19.3 8 22 12 22",
+  alert:"M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6A2 2 0 0 0 22 18L13.7 3.9a2 2 0 0 0-3.4 0",
+  cut:"M6 3v12M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 3v12",
+  search:"M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M21 21l-4.3-4.3",
+  copy:"M9 9h10v10H9zM5 15H4V4h11v1",
+  trash:"M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6",
+  down:"M12 3v12M7 11l5 5 5-5M4 21h16",
+  up:"M12 21V9M7 13l5-5 5 5M4 3h16",
+  reset:"M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5",
+  check:"M20 6 9 17l-5-5",
+};
+
+/* ══════════════════════════════════════════════════════════
+   間隔ラダー（署名要素）
+   ══════════════════════════════════════════════════════════ */
+function Ladder({stage,preview}){
+  return html`<div className="nosel">
+    <div className="ladder">
+      ${LADDER.slice(1).map((d,i)=>{
+        const s=i+1,on=s<=stage,cur=s===stage,tgt=preview!=null&&s===preview&&!cur;
+        return html`<div className="step" key=${s}>
+          <span className=${"pip"+(on?" on":"")+(cur?" cur":"")+(tgt?" tgt":"")}></span>
+          <span className=${"lb num"+(cur?" cur":"")}>${d}</span></div>`;
+      })}
+    </div>
+    <div className="between mt8" style=${{fontSize:"11px",color:"#475569"}}>
+      <span>間隔（日）</span>
+      <span style=${stage>=MASTER_STAGE?{color:"#2dd4bf",fontWeight:600}:{}}>
+        ${stage>=MASTER_STAGE?"習得ライン到達":`習得まであと ${MASTER_STAGE-stage} 段`}</span>
+    </div></div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   復習セッション
+   ══════════════════════════════════════════════════════════ */
+const RATE=[
+  {r:"again",l:"わからない",e:"半分未満",f:"出てこない",c:"var(--rose)"},
+  {r:"hard", l:"あいまい",  e:"半分以上",f:"時間がかかった",c:"var(--amber)"},
+  {r:"good", l:"わかった",  e:"全部言えた",f:"即答できた",c:"#14b8a6"},
+];
+
+function Review({session,setSession,st,onAnswer,onEdit,onClose}){
+  const [hover,setHover]=useState(null);
+  const [ed,setEd]=useState(false);
+  const [q,setQ]=useState("");const [a,setA]=useState("");
+
+  if(session.done){
+    const secs=Math.round((Date.now()-session.t0)/1000);
+    return html`<div className="review" style=${{justifyContent:"center",padding:"0 26px"}}>
+      <div className="eyebrow" style=${{color:"#64748b"}}>Session complete</div>
+      <div className="num mt16" style=${{fontSize:"44px",fontWeight:300}}>${session.queue.length} 問</div>
+      <div className="mt32" style=${{borderTop:"1px solid var(--dark3)",paddingTop:"22px"}}>
+        ${[["正答率",`${session.ok}/${session.queue.length}`,`${Math.round(session.ok/session.queue.length*100)}%`,false],
+           ["所要時間",`${Math.floor(secs/60)}分${String(secs%60).padStart(2,"0")}秒`,null,false],
+           ["新たに習得",`+${session.gained}`,null,session.gained>0]].map(([l,v,s,hi])=>html`
+          <div className="between" key=${l} style=${{marginBottom:"14px"}}>
+            <span className="sm" style=${{color:"#64748b"}}>${l}</span>
+            <span><span className="num" style=${{fontSize:"20px",fontWeight:600,color:hi?"#2dd4bf":"#f1f5f9"}}>${v}</span>
+            ${s?html`<span className="num sm" style=${{color:"#64748b",marginLeft:"8px"}}>${s}</span>`:null}</span>
+          </div>`)}
+      </div>
+      <button className="btn mt32" style=${{background:"#f1f5f9",color:"#0f172a"}}
+        onClick=${()=>onClose(session.gained)}>完了</button>
+    </div>`;
+  }
+
+  const card=st.cards.find(c=>c.id===session.queue[session.i]);
+  if(!card) return null;
+  const p=st.prog[card.id]||newProg();
+  const cat=st.cats.find(c=>c.id===card.catId);
+
+  return html`<div className="review nosel">
+    <div style=${{padding:"calc(env(safe-area-inset-top) + 14px) 20px 0"}}>
+      <div className="between">
+        <button onClick=${()=>onClose(session.gained)} style=${{color:"#64748b",width:"26px",height:"26px"}}>
+          <${Icon} d=${I.x}/></button>
+        <span className="num sm" style=${{color:"#64748b"}}>${session.i+1} / ${session.queue.length}</span>
+      </div>
+      <div className="progress"><div style=${{width:`${session.i/session.queue.length*100}%`}}></div></div>
+    </div>
+
+    <div className="body">
+      <div className="row mt20" style=${{gap:"7px"}}>
+        ${cat?html`<span className=${"dot bg-"+tn(cat.color)}></span>`:null}
+        <span className="xs" style=${{color:"#64748b"}}>${cat?cat.name:"未分類"}</span>
+        ${card.edited?html`<span className="xs" style=${{color:"#64748b",background:"var(--dark2)",padding:"1px 6px",borderRadius:"4px"}}>修正済</span>`:null}
+      </div>
+
+      ${ed?html`<div className="mt16">
+        <textarea className="field mt8" rows="3" value=${q} onChange=${e=>setQ(e.target.value)}
+          style=${{background:"var(--dark2)",color:"#f1f5f9"}}></textarea>
+        <textarea className="field mt8" rows="6" value=${a} onChange=${e=>setA(e.target.value)}
+          style=${{background:"var(--dark2)",color:"#f1f5f9"}}></textarea>
+        <div className="row mt12">
+          <button className="btn sm" style=${{background:"var(--dark2)",color:"#cbd5e1"}} onClick=${()=>setEd(false)}>やめる</button>
+          <button className="btn sm" style=${{background:"#f1f5f9",color:"#0f172a"}}
+            onClick=${()=>{onEdit(card.id,q,a);setEd(false);}}>保存</button>
+        </div></div>`
+      :html`<${React.Fragment}>
+        <p className="q">${card.q}</p>
+        ${session.open?html`
+          <div className="mt20" style=${{borderTop:"1px solid var(--dark2)",paddingTop:"18px"}}>
+            ${card.type==="enum"
+              ? html`<ul style=${{listStyle:"none"}}>${card.a.split("\n").filter(Boolean).map((l,i)=>
+                  html`<li className="a" key=${i} style=${{marginBottom:"9px"}}>${l}</li>`)}</ul>`
+              : html`<p className="a">${card.a}</p>`}
+            <button className="xs mt16" style=${{color:"#64748b",display:"flex",alignItems:"center",gap:"5px"}}
+              onClick=${()=>{setQ(card.q);setA(card.a);setEd(true);}}>
+              <span style=${{width:"13px",height:"13px",display:"block"}}><${Icon} d=${I.pen}/></span>
+              このカードを直す</button>
+          </div>`:null}
+      <//>`}
+      <div style=${{height:"24px"}}></div>
+    </div>
+
+    ${!ed?html`<div style=${{padding:"0 20px calc(env(safe-area-inset-bottom) + 24px)"}}>
+      ${session.open?html`<${React.Fragment}>
+        <div style=${{background:"var(--dark2)",borderRadius:"16px",padding:"16px",marginBottom:"18px"}}>
+          <${Ladder} stage=${p.stage} preview=${hover?previewStage(p,hover):null}/>
+        </div>
+        <div className="rate">
+          ${RATE.map(b=>html`<button key=${b.r}
+            onPointerEnter=${()=>setHover(b.r)} onPointerDown=${()=>setHover(b.r)}
+            onPointerLeave=${()=>setHover(null)}
+            onClick=${()=>{setHover(null);onAnswer(b.r);}}>
+            <span className="bar" style=${{background:b.c}}></span>
+            <span className="lb">${b.l}</span>
+            <span className="sb">${card.type==="enum"?b.e:b.f}</span>
+            <span className="nx num">${dayLabel(previewDays(p,b.r))}</span>
+          </button>`)}
+        </div><//>`
+      :html`<button className="btn" style=${{background:"#f1f5f9",color:"#0f172a"}}
+        onClick=${()=>setSession(s=>({...s,open:true}))}>解答を表示</button>`}
+    </div>`:null}
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ホーム
+   ══════════════════════════════════════════════════════════ */
+function Home({st,due,onStart,onSeed}){
+  const t=todayStr();
+  const mTotal=Object.values(st.prog).filter(p=>p.everM).length;
+  const mNow=Object.values(st.prog).filter(p=>p.mastered).length;
+  const recent=st.logs.filter(l=>daysBetween(l.d,t)<=7);
+  const acc=recent.length?Math.round(recent.filter(l=>l.ok).length/recent.length*100):0;
+  const doneToday=st.logs.filter(l=>l.d===t).length;
+  const mins=Math.max(1,Math.round(due.length*0.5));
+  const byCat=st.cats.map(c=>({...c,n:due.filter(d=>d.catId===c.id).length})).filter(c=>c.n);
+  const fc=Array.from({length:7},(_,i)=>Object.values(st.prog).filter(p=>p.due===addDays(t,i+1)).length);
+  const maxF=Math.max(1,...fc);
+
+  return html`<div>
+    <section className="ruled pad top" style=${{paddingBottom:"24px"}}>
+      <div className="eyebrow">Today's review</div>
+      ${st.cards.length===0?html`<div className="mt16">
+        <p style=${{fontSize:"18px",fontWeight:500}}>まだカードがありません</p>
+        <p className="sm mute mt4">「取り込み」タブでノートから一問一答を作れます。まずは中身を見てみますか。</p>
+        <button className="btn mt16" onClick=${onSeed}>サンプル7枚を入れて試す</button>
+      </div>`:html`<${React.Fragment}>
+        <div className="mt12" style=${{display:"flex",alignItems:"baseline",gap:"8px"}}>
+          <span className="num" style=${{fontSize:"58px",fontWeight:300,letterSpacing:"-.02em"}}>${due.length}</span>
+          <span style=${{fontSize:"18px",color:"var(--mute)"}}>件</span>
+          ${due.length>0?html`<span className="num sm faint" style=${{marginLeft:"auto"}}>約 ${mins} 分</span>`:null}
+        </div>
+        ${byCat.length>0?html`<div className="mt16" style=${{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+          ${byCat.map(c=>html`<span key=${c.id} className=${`chip sf-${tn(c.color)} t-${tn(c.color)}`}>
+            <span className=${"dot bg-"+tn(c.color)}></span>${c.name} <b className="num">${c.n}</b></span>`)}
+        </div>`:null}
+        <button className="btn mt20" disabled=${due.length===0} onClick=${onStart}>
+          ${due.length?"復習をはじめる":"今日はすべて完了"}</button>
+        ${doneToday>0?html`<p className="num xs faint mt12" style=${{textAlign:"center"}}>今日 ${doneToday} 件 回答済み</p>`:null}
+      <//>`}
+    </section>
+
+    ${st.cards.length>0?html`<div className="pad mt20">
+      <div className="grid2">
+        <div className="card"><div className="xs mute">覚えた知識</div>
+          <div className="num t-teal" style=${{fontSize:"30px",fontWeight:600,marginTop:"2px"}}>${mTotal}</div>
+          <div className="xs faint">累計</div></div>
+        <div className="card"><div className="xs mute">正答率</div>
+          <div className="num t-indigo" style=${{fontSize:"30px",fontWeight:600,marginTop:"2px"}}>${acc}<span style=${{fontSize:"18px"}}>%</span></div>
+          <div className="xs faint">直近7日</div></div>
+      </div>
+
+      <div className="card row mt12">
+        <span style=${{width:"20px",height:"20px",color:st.profile.streak?"var(--amber)":"#cbd5e1"}}><${Icon} d=${I.flame}/></span>
+        <span className="num" style=${{fontSize:"22px",fontWeight:600}}>${st.profile.streak}</span>
+        <span className="sm mute">日連続</span>
+        <span className="num xs faint" style=${{marginLeft:"auto"}}>全 ${st.cards.length} 枚</span>
+      </div>
+
+      <div className="card mt12">
+        <div className="eyebrow">Next 7 days</div>
+        <div className="bars mt12">
+          ${fc.map((n,i)=>html`<div key=${i} style=${{flex:1,textAlign:"center"}}>
+            <div className="b" style=${{height:`${n/maxF*44+2}px`}}></div>
+            <div className="num xs faint mt4">${i+1}</div></div>`)}
+        </div>
+        <p className="xs faint mt8">いま定着しているのは ${mNow} 枚。「覚えた知識」は一度到達したら減りません。</p>
+      </div>
+    </div>`:null}
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   取り込み
+   ══════════════════════════════════════════════════════════ */
+function Import({st,addCards,say,onDone}){
+  const [raw,setRaw]=useState("");
+  const [cat,setCat]=useState(st.cats[0]?st.cats[0].id:"");
+  const [pick,setPick]=useState([]);
+  const parsed=useMemo(()=>parseCards(raw),[raw]);
+  useEffect(()=>{setPick(parsed.map(()=>true));},[raw]);
+  const unsure=(raw.match(/\[\?\]/g)||[]).length;
+
+  const copy=()=>{
+    if(navigator.clipboard) navigator.clipboard.writeText(OCR_PROMPT)
+      .then(()=>say("プロンプトをコピーしました"),()=>say("コピーできませんでした"));
+    else say("コピーできませんでした");
+  };
+
+  return html`<div className="pad top" style=${{paddingBottom:"24px"}}>
+    <div className="eyebrow">Import</div>
+    <h2 className="title">ノートから取り込む</h2>
+
+    <div className="card sf-indigo mt16" style=${{borderColor:"#c7d2fe"}}>
+      <p className="sm t-indigo" style=${{fontWeight:600}}>Claude アプリで文字起こしする</p>
+      <ol className="xs t-indigo mt8" style=${{paddingLeft:"16px",lineHeight:1.9}}>
+        <li>下のボタンでプロンプトをコピー</li>
+        <li>Claude で新しいチャットを開き、ノートを撮影して添付</li>
+        <li>プロンプトを貼って送信（科目名は書き換える）</li>
+        <li>返ってきた文章をコピーし、下の欄に貼り付け</li>
+      </ol>
+      <button className="btn sm mt12" style=${{background:"var(--indigo)"}} onClick=${copy}>プロンプトをコピー</button>
+      <p className="xs t-indigo mt8">API料金はかかりません。いまお使いの Claude をそのまま使います。</p>
+    </div>
+
+    <textarea className="input mt16" rows="8" value=${raw} onChange=${e=>setRaw(e.target.value)}
+      placeholder=${"ここに貼り付け\n\nQ: 内発的動機づけの3つのポイントは？\nA: ① 自律性\n② 有能感\n③ 関係性\n---\nQ: ..."}></textarea>
+
+    ${unsure>0?html`<div className="card sf-rose mt12" style=${{borderColor:"#fecdd3"}}>
+      <div className="row t-rose" style=${{gap:"7px",fontWeight:600,fontSize:"14px"}}>
+        <span style=${{width:"16px",height:"16px"}}><${Icon} d=${I.alert}/></span>
+        確認が必要な ${unsure} 箇所</div>
+      <p className="xs t-rose mt4">手書きの 1 と 7、倍 と % は機械では判別できません。
+        <b>[?] を消して正しい方に直してから</b>追加してください。</p>
+      <div className="xs mt8" style=${{background:"#fff",borderRadius:"12px",padding:"8px",
+        maxHeight:"110px",overflowY:"auto",whiteSpace:"pre-wrap",lineHeight:1.9}}>
+        <${Highlighted} text=${raw}/></div>
+    </div>`:null}
+
+    ${parsed.length>0?html`<${React.Fragment}>
+      <div className="between mt16">
+        <p className="sm" style=${{fontWeight:600}}><span className="num">${pick.filter(Boolean).length}</span> 枚を追加します</p>
+        <select className="field" style=${{width:"auto"}} value=${cat} onChange=${e=>setCat(e.target.value)}>
+          ${st.cats.map(c=>html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}
+        </select>
+      </div>
+      <div className="mt12">
+        ${parsed.map((d,i)=>html`<button key=${i} onClick=${()=>setPick(p=>p.map((v,j)=>j===i?!v:v))}
+          style=${{width:"100%",textAlign:"left",display:"flex",gap:"10px",
+            border:`1px solid ${pick[i]?"#c7d2fe":"var(--line)"}`,background:pick[i]?"#fff":"#f1f5f9",
+            opacity:pick[i]?1:.5,borderRadius:"16px",padding:"12px",marginTop:"8px"}}>
+          <span style=${{width:"20px",height:"20px",borderRadius:"6px",flex:"none",marginTop:"2px",
+            background:pick[i]?"var(--indigo)":"#cbd5e1",display:"grid",placeItems:"center",color:"#fff"}}>
+            ${pick[i]?html`<span style=${{width:"13px",height:"13px"}}><${Icon} d=${I.check}/></span>`:null}</span>
+          <span style=${{flex:1,minWidth:0}}>
+            <span className="sm" style=${{fontWeight:500,display:"block"}}>${d.q}</span>
+            <span className="xs mute mt4" style=${{display:"block",whiteSpace:"pre-line",lineHeight:1.7}}>${d.a}</span>
+            ${d.type==="enum"?html`<span className="num xs mt8" style=${{display:"inline-block",
+              background:"#f1f5f9",padding:"1px 6px",borderRadius:"4px"}}>列挙 ${d.n}項目</span>`:null}
+          </span></button>`)}
+      </div>
+      <button className="btn mt20" disabled=${!pick.some(Boolean)}
+        onClick=${()=>{addCards(parsed.filter((_,i)=>pick[i]),cat);setRaw("");onDone();}}>追加する</button>
+    <//>`:null}
+
+    ${raw.trim()&&parsed.length===0?html`<p className="xs sf-amber t-amber mt16"
+      style=${{padding:"12px",borderRadius:"12px",lineHeight:1.8}}>
+      読み取れませんでした。<b>Q:</b> と <b>A:</b> で始まる行が必要です。カードの区切りは <b>---</b> です。</p>`:null}
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   カード
+   ══════════════════════════════════════════════════════════ */
+function Cards({st,addCards,editCard,delCard}){
+  const [q,setQ]=useState("");
+  const [open,setOpen]=useState(null);
+  const [dq,setDq]=useState("");const [da,setDa]=useState("");
+  const [add,setAdd]=useState(false);
+  const [nq,setNq]=useState("");const [na,setNa]=useState("");
+  const [nc,setNc]=useState(st.cats[0]?st.cats[0].id:"");
+  const t=todayStr();
+
+  const list=useMemo(()=>{
+    if(!q.trim()) return st.cards;
+    const k=q.trim().toLowerCase();
+    return st.cards.filter(c=>`${c.q} ${c.a}`.toLowerCase().includes(k));
+  },[st.cards,q]);
+
+  return html`<div className="pad top" style=${{paddingBottom:"24px"}}>
+    <div className="eyebrow">Cards</div>
+    <div className="between mt4">
+      <h2 className="title"><span className="num">${st.cards.length}</span> 枚</h2>
+      <button onClick=${()=>setAdd(!add)} style=${{background:"var(--ink)",color:"#fff",
+        borderRadius:"999px",width:"34px",height:"34px",display:"grid",placeItems:"center"}}>
+        <span style=${{width:"17px",height:"17px"}}><${Icon} d=${I.plus}/></span></button>
+    </div>
+
+    <div className="card mt12 row" style=${{padding:"10px 12px",gap:"8px"}}>
+      <span style=${{width:"16px",height:"16px",color:"var(--faint)",flex:"none"}}><${Icon} d=${I.search}/></span>
+      <input value=${q} onChange=${e=>setQ(e.target.value)} placeholder="質問・解答から探す" style=${{width:"100%",fontSize:"14px"}}/>
+    </div>
+
+    ${add?html`<div className="card mt12" style=${{borderColor:"#c7d2fe"}}>
+      <textarea className="field" rows="2" placeholder="質問" value=${nq} onChange=${e=>setNq(e.target.value)}></textarea>
+      <textarea className="field mt8" rows="4" placeholder="解答（改行で区切ると列挙カードになります）"
+        value=${na} onChange=${e=>setNa(e.target.value)}></textarea>
+      <select className="field mt8" value=${nc} onChange=${e=>setNc(e.target.value)}>
+        ${st.cats.map(c=>html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}</select>
+      <div className="row mt12">
+        <button className="btn sm ghost" onClick=${()=>setAdd(false)}>やめる</button>
+        <button className="btn sm" disabled=${!nq||!na} onClick=${()=>{
+          const lines=na.split("\n").filter(Boolean);
+          addCards([{q:nq,a:na,type:lines.length>1?"enum":"fact",n:lines.length>1?lines.length:0}],nc);
+          setNq("");setNa("");setAdd(false);
+        }}>追加</button>
+      </div></div>`:null}
+
+    ${st.cats.map(cat=>{
+      const items=list.filter(c=>c.catId===cat.id);
+      if(!items.length) return null;
+      return html`<section className="mt20" key=${cat.id}>
+        <div className="row" style=${{gap:"7px"}}>
+          <span className=${"dot bg-"+tn(cat.color)} style=${{width:"8px",height:"8px"}}></span>
+          <h3>${cat.name}</h3><span className="num xs faint">${items.length}</span>
+        </div>
+        ${items.map(c=>{
+          const p=st.prog[c.id]||newProg(); const over=p.due<=t;
+          return html`<div className="card mt8" key=${c.id} style=${{padding:"12px"}}>
+            ${open===c.id?html`<${React.Fragment}>
+              <textarea className="field" rows="2" value=${dq} onChange=${e=>setDq(e.target.value)}></textarea>
+              <textarea className="field mt8" rows="4" value=${da} onChange=${e=>setDa(e.target.value)}></textarea>
+              <div className="row mt12">
+                <button className="btn sm" style=${{width:"auto",padding:"10px 12px",background:"var(--rose-soft)",color:"var(--rose)"}}
+                  onClick=${()=>{delCard(c.id);setOpen(null);}}>
+                  <span style=${{width:"15px",height:"15px",display:"block"}}><${Icon} d=${I.trash}/></span></button>
+                <button className="btn sm ghost" onClick=${()=>setOpen(null)}>やめる</button>
+                <button className="btn sm" onClick=${()=>{editCard(c.id,dq,da);setOpen(null);}}>保存</button>
+              </div><//>`
+            :html`<button style=${{textAlign:"left",width:"100%"}}
+              onClick=${()=>{setOpen(c.id);setDq(c.q);setDa(c.a);}}>
+              <div className="between" style=${{alignItems:"flex-start",gap:"8px"}}>
+                <span className="sm" style=${{flex:1}}>${c.q}</span>
+                <span style=${{width:"14px",height:"14px",color:"#cbd5e1",flex:"none",marginTop:"3px"}}><${Icon} d=${I.pen}/></span>
+              </div>
+              <div className="num xs faint mt8" style=${{display:"flex",flexWrap:"wrap",gap:"7px"}}>
+                <span style=${p.mastered?{color:"var(--teal)",fontWeight:600}:{}}>${p.mastered?"習得済み":`stage ${p.stage}`}</span>
+                <span>·</span>
+                <span style=${over?{color:"var(--rose)",fontWeight:500}:{}}>${over?"今日":p.due}</span>
+                ${c.type==="enum"?html`<span style=${{background:"#f1f5f9",padding:"0 5px",borderRadius:"4px"}}>列挙 ${c.n}</span>`:null}
+                ${c.edited?html`<span style=${{background:"#f1f5f9",padding:"0 5px",borderRadius:"4px"}}>修正済</span>`:null}
+              </div></button>`}
+          </div>`;
+        })}
+      </section>`;
+    })}
+    ${st.cards.length===0?html`<p className="sm faint mt32" style=${{textAlign:"center"}}>「取り込み」タブから追加できます。</p>`:null}
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   分析
+   ══════════════════════════════════════════════════════════ */
+function Spark({points,color}){
+  if(points.length<2) return null;
+  const W=300,H=76,P=5;
+  const lo=Math.min(...points)-4,hi=Math.max(...points)+4;
+  const xs=points.map((_,i)=>P+i*(W-2*P)/(points.length-1));
+  const ys=points.map(v=>H-P-(v-lo)/Math.max(1,hi-lo)*(H-2*P));
+  const d=xs.map((x,i)=>`${i?"L":"M"}${x.toFixed(1)} ${ys[i].toFixed(1)}`).join(" ");
+  return html`<svg viewBox=${`0 0 ${W} ${H}`} style=${{width:"100%",height:"76px",marginTop:"8px"}}>
+    <path d=${d} fill="none" stroke=${color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+    ${xs.map((x,i)=>html`<circle key=${i} cx=${x} cy=${ys[i]} r="2.5" fill=${color}/>`)}
+  </svg>`;
+}
+
+function Stats({st,splitCard}){
+  const [days,setDays]=useState(30);
+  const t=todayStr();
+  const inR=st.logs.filter(l=>daysBetween(l.d,t)<=days);
+
+  const trend=useMemo(()=>{
+    const m=new Map();
+    inR.forEach(l=>{const v=m.get(l.d)||{n:0,ok:0};v.n++;if(l.ok)v.ok++;m.set(l.d,v);});
+    return [...m.entries()].sort().map(([,v])=>Math.round(v.ok/v.n*100));
+  },[inR]);
+
+  const ret=useMemo(()=>{
+    const m=new Map();
+    st.logs.forEach(l=>{if(!l.ivb)return;const v=m.get(l.ivb)||{n:0,ok:0};v.n++;if(l.ok)v.ok++;m.set(l.ivb,v);});
+    return [...m.entries()].filter(([,v])=>v.n>=4).map(([iv,v])=>({iv,r:Math.round(v.ok/v.n*100)})).sort((a,b)=>a.iv-b.iv);
+  },[st.logs]);
+
+  const byCat=st.cats.map(c=>{
+    const ls=inR.filter(l=>l.k===c.id);
+    return {...c,n:ls.length,acc:ls.length?Math.round(ls.filter(l=>l.ok).length/ls.length*100):0};
+  }).filter(c=>c.n>=3);
+
+  const weak=st.cards.map(c=>({c,p:st.prog[c.id]||newProg()}))
+    .filter(x=>x.p.tr>=3&&x.p.cc/x.p.tr<0.6).sort((a,b)=>b.p.lapses-a.p.lapses);
+
+  return html`<div className="pad top" style=${{paddingBottom:"24px"}}>
+    <div className="eyebrow">Analytics</div>
+    <h2 className="title">分析</h2>
+    <div className="row mt16" style=${{gap:"6px"}}>
+      ${[7,30,60].map(d=>html`<button key=${d} onClick=${()=>setDays(d)} className="num xs"
+        style=${{padding:"6px 14px",borderRadius:"999px",fontWeight:500,
+          background:days===d?"var(--ink)":"#f1f5f9",color:days===d?"#fff":"var(--ink2)"}}>${d}日</button>`)}
+    </div>
+
+    ${st.logs.length===0?html`<p className="sm faint mt32" style=${{textAlign:"center"}}>復習を数回おこなうと、ここに傾向が出ます。</p>`
+    :html`<${React.Fragment}>
+      ${trend.length>1?html`<div className="card mt16"><h3>正答率の推移</h3>
+        <${Spark} points=${trend} color="#4f46e5"/></div>`:null}
+
+      ${byCat.length>0?html`<div className="card mt16"><h3>カテゴリー別</h3>
+        ${byCat.map(c=>html`<div key=${c.id} className="mt12">
+          <div className="between xs"><span className="mute">${c.name}</span>
+            <b className="num" style=${{color:c.acc<60?"var(--rose)":"var(--ink2)"}}>${c.acc}%</b></div>
+          <div className="meter mt4"><div className=${c.acc<60?"bg-rose":"bg-"+tn(c.color)} style=${{width:`${c.acc}%`}}></div></div>
+        </div>`)}</div>`:null}
+
+      ${ret.length>1?html`<div className="card mt16">
+        <h3>あなたの実測忘却曲線</h3>
+        <p className="xs faint">間隔ごとに、実際に思い出せた割合</p>
+        <${Spark} points=${ret.map(x=>x.r)} color="#0d9488"/>
+        <div className="between num xs faint">${ret.map(x=>html`<span key=${x.iv}>${x.iv}d</span>`)}</div>
+      </div>`:null}
+
+      <h3 className="mt24">覚えられていない知識</h3>
+      ${weak.length===0?html`<p className="xs faint mt8">正答率が低いカードはありません。</p>`:null}
+      ${weak.map(({c,p})=>html`<div className="card mt8" key=${c.id} style=${{padding:"12px"}}>
+        <p className="sm" style=${{fontWeight:500}}>${c.q}</p>
+        <p className="num xs mute mt4">失敗 ${p.lapses}回 · 正答率 ${Math.round(p.cc/p.tr*100)}%</p>
+        ${p.leech&&c.type==="enum"&&c.n>1?html`<div className="sf-amber mt12" style=${{borderRadius:"12px",padding:"10px"}}>
+          <p className="xs t-amber">列挙カードで ${p.lapses} 回失敗しています。個別に分けると覚えやすくなります。</p>
+          <button className="xs mt8" onClick=${()=>splitCard(c)}
+            style=${{background:"#d97706",color:"#fff",padding:"6px 12px",borderRadius:"8px",fontWeight:600,
+              display:"flex",alignItems:"center",gap:"6px"}}>
+            <span style=${{width:"12px",height:"12px"}}><${Icon} d=${I.cut}/></span>${c.n}枚に分割する</button>
+        </div>`:null}
+      </div>`)}
+    <//>`}
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   設定
+   ══════════════════════════════════════════════════════════ */
+function Setting({st,update,say}){
+  const [nc,setNc]=useState("");const [col,setCol]=useState("indigo");
+  const [io,setIo]=useState("");const [showIo,setShowIo]=useState(false);
+  const mTotal=Object.values(st.prog).filter(p=>p.everM).length;
+  const mNow=Object.values(st.prog).filter(p=>p.mastered).length;
+
+  const doExport=()=>{
+    const s=JSON.stringify(st); setIo(s); setShowIo(true);
+    if(navigator.clipboard) navigator.clipboard.writeText(s)
+      .then(()=>say("コピーしました"),()=>say("下の欄から手動でコピーしてください"));
+  };
+  const doImport=()=>{
+    try{
+      const d=JSON.parse(io);
+      if(!d.cards||!d.prog) throw new Error();
+      update({...blankState(),...d}); say("復元しました"); setShowIo(false);
+    }catch{ say("読み込めませんでした"); }
+  };
+
+  return html`<div className="pad top" style=${{paddingBottom:"24px"}}>
+    <div className="eyebrow">Settings</div>
+    <h2 className="title">設定</h2>
+
+    <div className="card mt20">
+      <h3>覚えた知識</h3>
+      <p className="num t-teal" style=${{fontSize:"34px",fontWeight:600,marginTop:"6px"}}>${mTotal}</p>
+      <p className="xs mute mt8">30日間隔（stage 5）を正解で通過したカードを数えています。
+        この数は<b>一度到達したら減りません</b>。いま定着しているのは ${mNow} 枚です。</p>
+    </div>
+
+    <div className="card mt16">
+      <h3>1日の上限</h3>
+      <div className="between mt12"><span className="sm mute">復習カード</span>
+        <b className="num sm">${st.profile.limit} 枚</b></div>
+      <input type="range" min="10" max="200" step="10" value=${st.profile.limit}
+        onChange=${e=>update({...st,profile:{...st.profile,limit:Number(e.target.value)}})}
+        style=${{width:"100%",marginTop:"8px",accentColor:"var(--indigo)"}}/>
+      <p className="xs faint mt8">最初は少なめが続きます。足りなければいつでも増やせます。</p>
+    </div>
+
+    <div className="card mt16">
+      <h3>カテゴリー</h3>
+      <div className="mt12" style=${{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+        ${st.cats.map(c=>html`<span key=${c.id} className=${`chip sf-${tn(c.color)} t-${tn(c.color)}`}>
+          <span className=${"dot bg-"+tn(c.color)}></span>${c.name}</span>`)}
+      </div>
+      <div className="row mt12" style=${{gap:"8px"}}>
+        <input className="field" style=${{flex:1}} value=${nc} onChange=${e=>setNc(e.target.value)} placeholder="新しいカテゴリー"/>
+        <button className="btn sm" style=${{width:"auto",padding:"10px 16px"}} disabled=${!nc.trim()}
+          onClick=${()=>{update({...st,cats:[...st.cats,{id:uid(),name:nc.trim(),color:col}]});setNc("");say("追加しました");}}>追加</button>
+      </div>
+      <div className="row mt8" style=${{gap:"7px"}}>
+        ${TONES.map(c=>html`<button key=${c} onClick=${()=>setCol(c)} className=${"bg-"+c}
+          style=${{width:"24px",height:"24px",borderRadius:"999px",
+            boxShadow:col===c?"0 0 0 2px #fff,0 0 0 4px var(--ink)":"none"}}></button>`)}
+      </div>
+    </div>
+
+    <div className="card mt16">
+      <h3>バックアップ</h3>
+      <p className="xs mute mt8">データはこの端末に保存されています。
+        書き出したテキストをメモアプリに貼っておくと、機種変更のときも復元できます。</p>
+      <div className="row mt12" style=${{gap:"8px"}}>
+        <button className="btn sm ghost" onClick=${doExport}>書き出す</button>
+        <button className="btn sm ghost" onClick=${()=>setShowIo(!showIo)}>読み込む</button>
+      </div>
+      ${showIo?html`<${React.Fragment}>
+        <textarea className="field mt12" rows="4" value=${io} onChange=${e=>setIo(e.target.value)}
+          placeholder="ここにバックアップを貼り付けて「復元する」" style=${{fontSize:"11px"}}></textarea>
+        <button className="btn sm mt8" disabled=${!io.trim()} onClick=${doImport}>復元する（いまのデータは置き換わります）</button>
+      <//>`:null}
+    </div>
+
+    <div className="card mt16">
+      <h3>復習の仕組み</h3>
+      <p className="xs mute mt8">正解するたびに 1日 → 3日 → 7日 → 14日 → 30日 → 60日 → 120日 と間隔が伸びます。
+        「わからない」は2段階戻り、同じセッションの最後にもう一度出ます。
+        カードごとの易しさ係数で間隔を ±12% 調整し、復習日が集中しないよう ±5% のゆらぎを入れています。</p>
+    </div>
+
+    <button className="btn ghost mt24" style=${{border:"1px solid var(--line)",background:"transparent",color:"var(--mute)",fontSize:"14px"}}
+      onClick=${()=>{ if(confirm("すべてのカードと履歴を消します。よろしいですか？")){update(blankState());say("初期化しました");} }}>
+      すべて初期化</button>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   アプリ本体
+   ══════════════════════════════════════════════════════════ */
+const TABS=[["home","ホーム",I.home],["cards","カード",I.cards],
+            ["import","取り込み",I.paste],["stats","分析",I.chart],["set","設定",I.gear]];
+
+function App(){
+  const [st,setSt]=useState(()=>loadState()||blankState());
+  const [tab,setTab]=useState("home");
+  const [session,setSession]=useState(null);
+  const [toast,setToast]=useState(null);
+  const [saveErr,setSaveErr]=useState(false);
+  const [addHome,setAddHome]=useState(false);
+
+  const say=m=>{setToast(m);setTimeout(()=>setToast(null),2200);};
+  const update=next=>{ setSt(next); setSaveErr(!saveState(next)); };
+
+  useEffect(()=>{
+    const iOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+    const stand=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+    setAddHome(iOS&&!stand);
+  },[]);
+
+  const due=useMemo(()=>{
+    const t=todayStr();
+    return st.cards.filter(c=>(st.prog[c.id]?st.prog[c.id].due:t)<=t).slice(0,st.profile.limit);
+  },[st]);
+
+  const answer=rating=>{
+    const id=session.queue[session.i];
+    const before=st.prog[id]||newProg();
+    const after=schedule(before,rating,id);
+    const gained=!before.everM&&after.everM?1:0;
+    const t=todayStr();
+    const pf={...st.profile};
+    if(pf.last!==t){
+      pf.streak=pf.last===addDays(t,-1)?pf.streak+1:1;
+      pf.longest=Math.max(pf.longest,pf.streak);
+      pf.last=t;
+    }
+    const card=st.cards.find(x=>x.id===id);
+    update({...st,prog:{...st.prog,[id]:after},profile:pf,
+      logs:[...st.logs,{c:id,d:t,ok:rating!=="again",r:rating,ivb:LADDER[before.stage],k:card?card.catId:null}]});
+
+    const last=session.i>=session.queue.length-1&&rating!=="again";
+    setSession(s=>({...s,
+      queue:rating==="again"?[...s.queue,id]:s.queue,
+      i:last?s.i:s.i+1, open:false,
+      ok:s.ok+(rating!=="again"?1:0), gained:s.gained+gained, done:last}));
+  };
+
+  const addCards=(list,catId)=>{
+    const cards=list.map(d=>({id:uid(),catId,q:d.q,a:d.a,type:d.type,n:d.n}));
+    const prog={...st.prog}; cards.forEach(c=>{prog[c.id]=newProg();});
+    update({...st,cards:[...st.cards,...cards],prog});
+    say(`${cards.length}枚を追加しました`);
+  };
+  const editCard=(id,q,a)=>{
+    const lines=a.split("\n").filter(Boolean);
+    update({...st,cards:st.cards.map(c=>c.id===id
+      ?{...c,q,a,edited:true,type:lines.length>1?"enum":"fact",n:lines.length>1?lines.length:0}:c)});
+  };
+  const delCard=id=>{
+    const prog={...st.prog}; delete prog[id];
+    update({...st,cards:st.cards.filter(c=>c.id!==id),prog}); say("削除しました");
+  };
+  const splitCard=card=>{
+    const items=card.a.split("\n").map(s=>s.replace(/^[①-⑳0-9]+[.、)\s]*/,"").trim()).filter(Boolean);
+    if(items.length<2) return say("分割できません");
+    const topic=card.q.replace(/[0-9０-９]+つは？|[0-9０-９]+要素は？|は？$/g,"").trim();
+    const made=items.map(it=>({id:uid(),catId:card.catId,type:"fact",n:0,
+      q:`${topic} — 「${it.slice(0,16)}」を説明できますか？`,a:it}));
+    const prog={...st.prog}; delete prog[card.id];
+    made.forEach(c=>{prog[c.id]=newProg();});
+    update({...st,cards:[...st.cards.filter(c=>c.id!==card.id),...made],prog});
+    say(`${items.length}枚に分割しました`);
+  };
+  const start=()=>{
+    if(!due.length) return say("今日の復習はありません");
+    setSession({queue:due.map(c=>c.id),i:0,open:false,ok:0,gained:0,done:false,t0:Date.now()});
+  };
+
+  return html`<div className="app">
+    ${saveErr?html`<div className="warn">保存に失敗しました。データが残らない可能性があります。</div>`:null}
+    ${addHome?html`<div className="warn" style=${{background:"var(--indigo-soft)",color:"#3730a3"}}>
+      共有ボタン → 「ホーム画面に追加」で、アプリとして使えます</div>`:null}
+
+    ${tab==="home"?html`<${Home} st=${st} due=${due} onStart=${start}
+      onSeed=${()=>addCards(SAMPLE.map(([q,a,type,n])=>({q,a,type,n})),"c1")}/>`:null}
+    ${tab==="cards"?html`<${Cards} st=${st} addCards=${addCards} editCard=${editCard} delCard=${delCard}/>`:null}
+    ${tab==="import"?html`<${Import} st=${st} addCards=${addCards} say=${say} onDone=${()=>setTab("home")}/>`:null}
+    ${tab==="stats"?html`<${Stats} st=${st} splitCard=${splitCard}/>`:null}
+    ${tab==="set"?html`<${Setting} st=${st} update=${update} say=${say}/>`:null}
+
+    <nav className="tabbar">
+      ${TABS.map(([id,label,d])=>html`<button key=${id} className=${"tab"+(tab===id?" on":"")}
+        onClick=${()=>setTab(id)}>
+        <${Icon} d=${d}/><span>${label}</span>
+        ${id==="home"&&due.length>0?html`<span className="badge num">${due.length>99?"99+":due.length}</span>`:null}
+      </button>`)}
+    </nav>
+
+    ${session?html`<${Review} session=${session} setSession=${setSession} st=${st}
+      onAnswer=${answer} onEdit=${editCard}
+      onClose=${g=>{setSession(null); if(g>0) say(`${g}個の知識を習得しました`);}}/>`:null}
+
+    ${toast?html`<div className="toast">${toast}</div>`:null}
+  </div>`;
+}
+
+createRoot(document.getElementById("root")).render(html`<${App}/>`);
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
